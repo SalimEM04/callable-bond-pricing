@@ -4,35 +4,35 @@ A Python project for pricing and analyzing the interest-rate risk of a callable 
 
 The project focuses on the impact of the embedded issuer call option on bond valuation, duration, DV01, convexity, and volatility exposure.
 
+---
+
 ## Project Overview
 
 A callable bond can be interpreted as a straight bond combined with an embedded option sold by the investor to the issuer:
 
-$$
-\text{Callable Bond}
-=
-\text{Straight Bond}
--
-\text{Issuer Call Option}
-$$
+**Callable Bond = Straight Bond − Issuer Call Option**
 
 When interest rates decline, the issuer has an incentive to redeem the bond early and refinance at a lower rate. This limits the investor's upside and makes the bond's interest-rate exposure state-dependent.
 
-This project develops a complete framework to model this behavior using a Hull–White short-rate model.
+This project develops a framework to model this behavior using a one-factor Hull–White short-rate model.
+
+---
 
 ## Bond Structure
 
 The instrument considered is a fixed-rate callable bond with:
 
-- Face value: **100**
-- Maturity: **5 years**
-- Annual coupon rate: **5%**
-- Call protection: **2 years**
-- Call dates: **2Y, 3Y and 4Y**
-- Call price: **100**
-- Call dates coinciding with coupon payment dates
+- **Face value:** 100
+- **Maturity:** 5 years
+- **Annual coupon rate:** 5%
+- **Call protection:** 2 years
+- **Call dates:** 2Y, 3Y and 4Y
+- **Call price:** 100
+- **Call convention:** call dates coincide with coupon payment dates
 
 The structure can therefore be described as a **5Y NC2 callable bond**, callable annually at par after the non-call period.
+
+---
 
 ## Methodology
 
@@ -44,23 +44,13 @@ The pricing framework follows five main steps:
 4. Calibrate the tree to the initial term structure using Arrow-Debreu state prices.
 5. Price the straight and callable bonds by backward induction.
 
-The callable bond value at a call date is determined by:
+At each call date, the callable bond value is determined by the lower of the continuation value and the contractual call price, with the coupon payment added according to the model convention:
 
-$$
-V_t^{Callable}
-=
-C_t
-+
-\min
-\left(
-V_t^{Continuation},
-K
-\right)
-$$
-
-where \(K\) is the contractual call price.
+**Callable Bond Value = Coupon + min(Continuation Value, Call Price)**
 
 The issuer exercises the call whenever the continuation value of the bond exceeds the call price.
+
+---
 
 ## Key Results
 
@@ -75,17 +65,11 @@ Under the base-case assumptions:
 
 The value of the embedded issuer call is approximately:
 
-$$
-V_{\text{Call}}
-=
-V_{\text{Straight}}
--
-V_{\text{Callable}}
-=
-3.05
-$$
+**Embedded Call Value = Straight Bond Value − Callable Bond Value = 3.05**
 
 The call feature therefore materially reduces both the value and the interest-rate sensitivity of the bond.
+
+---
 
 ## Interest-Rate Sensitivity
 
@@ -97,6 +81,24 @@ As rates fall, the probability of early redemption increases. The expected matur
 
 The embedded option therefore creates a state-dependent duration and convexity profile.
 
+In the base scenario, effective duration decreases from **4.56** for the straight bond to **2.59** for the callable bond, while DV01 decreases from **0.0486** to **0.0268**.
+
+---
+
+## Convexity
+
+The embedded call option significantly modifies the convexity profile of the bond.
+
+The straight bond has an effective convexity of approximately **21.92**, compared with **8.06** for the callable bond.
+
+The callable bond therefore retains positive convexity around the current market scenario, but substantially less than the equivalent straight bond.
+
+When interest rates decline, the probability of early redemption increases. This limits the price appreciation of the callable bond and progressively reduces its convexity.
+
+A callable bond does not necessarily exhibit negative convexity in every interest-rate environment. Its convexity depends on the level of interest rates, the call schedule, volatility, and the proximity to the exercise boundary.
+
+---
+
 ## Volatility Sensitivity
 
 ![Volatility Sensitivity](figures/volatility_sensitivity.png)
@@ -105,17 +107,15 @@ Higher short-rate volatility increases the value of the issuer's embedded call o
 
 In the model, increasing the Hull–White volatility parameter from **0.5% to 3.0%** increases the embedded call value from approximately **2.58 to 5.52**, while the callable bond value decreases from approximately **104.10 to 101.16**.
 
-This follows directly from the investor's position:
+This relationship follows directly from the investor's position:
 
-$$
-\text{Long Callable Bond}
-=
-\text{Long Straight Bond}
--
-\text{Long Issuer Call}
-$$
+**Long Callable Bond = Long Straight Bond − Long Issuer Call**
 
 The investor is therefore short the embedded optionality.
+
+The volatility sensitivity presented here should be interpreted as sensitivity to the **Hull–White short-rate volatility parameter**, rather than as a market-quoted option vega.
+
+---
 
 ## Trading & Risk Management Interpretation
 
@@ -123,17 +123,17 @@ From a trading perspective, a callable bond cannot be managed using only the dur
 
 A first-order interest-rate hedge can be constructed using government bonds or interest-rate swaps to offset DV01. However, the hedge is inherently dynamic because the probability of exercise changes as interest rates move.
 
+When rates decline, the call option becomes more relevant and the expected maturity of the callable bond shortens. When rates rise, the call becomes less relevant and the callable bond increasingly behaves like a straight bond.
+
 The position also contains convexity and volatility exposure generated by the embedded call option. Interest-rate options such as swaptions can therefore be used to manage part of this optionality risk.
 
 The overall risk profile can be summarized as:
 
-$$
-\text{Interest-Rate Risk}
-+
-\text{Convexity Risk}
-+
-\text{Volatility Risk}
-$$
+**Interest-Rate Risk + Convexity Risk + Volatility Risk**
+
+Managing a callable bond therefore requires dynamic risk management as market conditions and exercise probabilities evolve.
+
+---
 
 ## Repository Structure
 
@@ -156,19 +156,27 @@ callable-bond-pricing/
 └── .gitignore
 ```
 
-The full analysis, mathematical derivations, implementation, numerical results, and financial interpretation are available in the Jupyter notebook:
+The full analysis, mathematical derivations, Python implementation, numerical results, and financial interpretation are available in the Jupyter notebook:
 
 [Open the full notebook](notebooks/callable_bond_pricing.ipynb)
 
+---
+
 ## Model Limitations
 
-This project is designed to capture the main economic mechanisms of callable bond pricing rather than reproduce a production-level pricing library.
+This project is designed to capture the main economic mechanisms of callable bond pricing and risk management rather than reproduce a production-level pricing library.
 
-The Hull–White mean-reversion and volatility parameters are treated as model inputs rather than calibrated to a market swaption volatility surface.
+The interest-rate dynamics are represented using a simplified one-factor Hull–White trinomial tree calibrated to an illustrative zero-coupon curve.
 
-The framework also abstracts from issuer credit risk, liquidity, transaction costs, funding considerations, detailed day-count conventions, settlement rules, and more complex contractual features.
+The Hull–White mean-reversion and volatility parameters are treated as model inputs rather than being calibrated to a market surface of interest-rate options.
 
-In a production environment, the initial curve would typically be constructed from liquid market instruments and the model parameters calibrated to market prices or implied volatilities of interest-rate derivatives.
+The callable bond is modeled as a five-year fixed-rate bond with two years of call protection, followed by annual call opportunities at par on coupon payment dates. This simplified structure avoids additional contractual features such as irregular call schedules, accrued-interest conventions, detailed day-count conventions, settlement rules, and business-day adjustments.
+
+In a production environment, the initial yield curve would typically be constructed from liquid market instruments, while the Hull–White parameters would be calibrated to market prices or implied volatilities of interest-rate derivatives such as swaptions.
+
+Additional factors such as issuer credit risk, liquidity, transaction costs, and funding considerations would also need to be incorporated for a complete market valuation.
+
+---
 
 ## Technologies
 
@@ -178,6 +186,8 @@ In a production environment, the initial curve would typically be constructed fr
 - SciPy
 - Matplotlib
 - Jupyter Notebook
+
+---
 
 ## How to Run
 
